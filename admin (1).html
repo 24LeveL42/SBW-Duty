@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBW Duty — Admin Dashboard</title>
+<style>
+  :root {
+    --bg: #0e1410;
+    --panel: #161d18;
+    --panel-2: #1c2420;
+    --border: #2a342d;
+    --text: #e8ece8;
+    --text-dim: #8a9389;
+    --accent: #6b8e4e;
+    --accent-bright: #8fb86b;
+    --amber: #c9a227;
+    --red: #b3492f;
+    --blue: #4a7a9e;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(107,142,78,0.06), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(74,122,158,0.05), transparent 40%);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ---- Lock screen ---- */
+  #lockScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .lock-box {
+    width: 100%;
+    max-width: 360px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .lock-icon { font-size: 28px; margin-bottom: 12px; }
+  .lock-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .lock-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; font-family: var(--mono); }
+  .lock-box input {
+    width: 100%;
+    padding: 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 4px;
+    border-radius: 2px;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+  }
+  .lock-box input:focus { outline: none; border-color: var(--accent); }
+  .lock-box button {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    color: #0e1410;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    font-size: 13px;
+  }
+  .lock-box button:hover { background: var(--accent-bright); }
+  .lock-error { color: #d97a5e; font-size: 12px; margin-top: 10px; font-family: var(--mono); display: none; }
+
+  /* ---- Dashboard ---- */
+  #dashboard { display: none; padding: 20px 16px 60px; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  .header {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--accent-bright); text-transform: uppercase; margin-bottom: 6px; }
+  .title { font-size: 20px; font-weight: 700; }
+  .subtitle { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .logout-btn {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 8px 14px; font-family: var(--mono); font-size: 11px; cursor: pointer; border-radius: 2px;
+  }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab-btn {
+    flex: 1;
+    padding: 11px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    text-align: center;
+  }
+  .tab-btn.active { background: rgba(107,142,78,0.15); border-color: var(--accent); color: var(--accent-bright); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .panel { border: 1px solid var(--border); background: var(--panel); margin-bottom: 16px; }
+  .panel-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-body { padding: 16px; }
+
+  /* Member points table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; color: var(--text-dim); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pts { font-family: var(--mono); color: var(--amber); font-weight: 600; }
+
+  /* Preferences list */
+  .pref-entry {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); margin-bottom: 6px; border-radius: 2px; font-size: 13px;
+  }
+  .pref-entry.unavailable { border-left-color: var(--red); }
+  .pref-name { font-weight: 600; }
+  .pref-meta { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+  .badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 2px; }
+  .badge.medical { background: rgba(179,73,47,0.18); color: #d97a5e; }
+  .badge.leave { background: rgba(201,162,39,0.18); color: #ddb84a; }
+  .badge.training { background: rgba(74,122,158,0.18); color: #6fa3c9; }
+  .badge.course { background: rgba(107,142,78,0.18); color: var(--accent-bright); }
+
+  .empty-state { text-align: center; color: var(--text-dim); font-size: 12px; font-family: var(--mono); padding: 24px 0; }
+
+  /* Roster generator */
+  .gen-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .gen-row > div { flex: 1; min-width: 140px; }
+  label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-family: var(--mono); letter-spacing: 0.5px; }
+  input[type="date"], input[type="number"] {
+    width: 100%; padding: 10px; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); font-size: 13px; border-radius: 2px; font-family: inherit;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+
+  .btn {
+    padding: 12px 18px; background: var(--accent); border: none; color: #0e1410;
+    font-weight: 700; font-family: var(--mono); font-size: 12px; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer; border-radius: 2px;
+  }
+  .btn:hover { background: var(--accent-bright); }
+  .btn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent-bright); background: transparent; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Roster table */
+  .roster-row {
+    display: grid; grid-template-columns: 100px 1fr 90px 60px;
+    gap: 8px; align-items: center;
+    padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .roster-row.weekend { background: rgba(201,162,39,0.06); }
+  .roster-row.ph { background: rgba(179,73,47,0.06); }
+  .roster-row.header-row { font-family: var(--mono); font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; }
+  .roster-date { font-family: var(--mono); }
+  .roster-name select {
+    width: 100%; padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; border-radius: 2px;
+  }
+  .roster-daytype { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .roster-pts { font-family: var(--mono); font-size: 11px; color: var(--amber); text-align: right; }
+
+  .status-msg { text-align: center; font-size: 12px; font-family: var(--mono); margin-top: 12px; padding: 10px; border-radius: 2px; display: none; }
+  .status-msg.show { display: block; }
+  .status-msg.success { background: rgba(107,142,78,0.12); color: var(--accent-bright); border: 1px solid var(--accent); }
+  .status-msg.error { background: rgba(179,73,47,0.12); color: #d97a5e; border: 1px solid var(--red); }
+
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat-card { flex: 1; min-width: 100px; background: var(--panel); border: 1px solid var(--border); padding: 12px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--accent-bright); }
+  .stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Admin Access</div>
+    <div class="lock-sub">SBW DUTY ROSTER — RESTRICTED</div>
+    <input type="password" id="passInput" placeholder="••••••••" maxlength="20">
+    <button id="unlockBtn">Unlock</button>
+    <div class="lock-error" id="lockError">Incorrect passcode. Try again.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="wrap">
+
+    <div class="header">
+      <div>
+        <div class="eyebrow">SBW &middot; Regimental Duty Roster</div>
+        <div class="title">Admin Dashboard</div>
+        <div class="subtitle">Review preferences, generate roster, manage points.</div>
+      </div>
+      <button class="logout-btn" id="logoutBtn">Lock</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-btn active" data-tab="overview">Overview</div>
+      <div class="tab-btn" data-tab="preferences">Preferences</div>
+      <div class="tab-btn" data-tab="roster">Generate Roster</div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="stat-row" id="statRow"></div>
+      <div class="panel">
+        <div class="panel-head"><span>Member Points Standing</span></div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>Rank</th><th>Name</th><th style="text-align:right">Points</th></tr></thead>
+            <tbody id="memberTableBody"><tr><td colspan="3" class="empty-state">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREFERENCES TAB -->
+    <div class="tab-content" id="tab-preferences">
+      <div class="panel">
+        <div class="panel-head">
+          <span>Submitted Preferences</span>
+          <button class="btn-outline btn" id="refreshPrefsBtn" style="padding:6px 10px;font-size:10px;">Refresh</button>
+        </div>
+        <div class="panel-body" id="prefsBody">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROSTER TAB -->
+    <div class="tab-content" id="tab-roster">
+      <div class="panel">
+        <div class="panel-head"><span>Generate Roster</span></div>
+        <div class="panel-body">
+          <div class="gen-row">
+            <div>
+              <label>Start date</label>
+              <input type="date" id="rangeStart">
+            </div>
+            <div>
+              <label>End date</label>
+              <input type="date" id="rangeEnd">
+            </div>
+            <div>
+              <label>Slots per day</label>
+              <input type="number" id="slotsPerDay" value="1" min="1" max="5">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="generateBtn">Auto-generate roster</button>
+            <button class="btn btn-outline" id="addRowBtn">+ Add date manually</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="rosterPanel" style="display:none;">
+        <div class="panel-head"><span>Draft Roster — Review &amp; Edit</span></div>
+        <div class="panel-body">
+          <div class="roster-row header-row">
+            <div>Date</div><div>Assigned</div><div>Day Type</div><div>Pts</div>
+          </div>
+          <div id="rosterList"></div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn" id="saveRosterBtn">Save &amp; finalise roster</button>
+          </div>
+          <div class="status-msg" id="rosterStatus"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbwEEeab7N7jEF2Gf4FhQMkNgpbW6ZnFACa5-r1M9rA4i2vBFQRfDFIE2Yvd1sJMj4crxg/exec";
+  const ADMIN_PASSCODE = "SBW2026";
+
+  let members = [];
+  let preferences = [];
+  let draftRoster = [];
+
+  /* ---- Lock screen ---- */
+  const passInput = document.getElementById('passInput');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const lockError = document.getElementById('lockError');
+
+  function tryUnlock() {
+    if (passInput.value === ADMIN_PASSCODE) {
+      document.getElementById('lockScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadAll();
+    } else {
+      lockError.style.display = 'block';
+      passInput.value = '';
+    }
+  }
+  unlockBtn.addEventListener('click', tryUnlock);
+  passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('lockScreen').style.display = 'flex';
+    passInput.value = '';
+  });
+
+  /* ---- Tabs ---- */
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  /* ---- Load data ---- */
+  function loadAll() {
+    loadMembers();
+    loadPreferences();
+  }
+
+  function loadMembers() {
+    fetch(API_URL + "?action=getMembers")
+      .then(r => r.json())
+      .then(data => {
+        members = data;
+        renderMemberTable();
+        renderStats();
+      });
+  }
+
+  function loadPreferences() {
+    fetch(API_URL + "?action=getPreferences")
+      .then(r => r.json())
+      .then(data => {
+        preferences = data;
+        renderPreferences();
+        renderStats();
+      });
+  }
+
+  document.getElementById('refreshPrefsBtn').addEventListener('click', loadPreferences);
+
+  function renderStats() {
+    const preferredCount = preferences.filter(p => p.status === 'Preferred').length;
+    const unavailableCount = preferences.filter(p => p.status === 'Unavailable').length;
+    document.getElementById('statRow').innerHTML = `
+      <div class="stat-card"><div class="stat-num">${members.length}</div><div class="stat-label">Members</div></div>
+      <div class="stat-card"><div class="stat-num">${preferredCount}</div><div class="stat-label">Preferred Dates</div></div>
+      <div class="stat-card"><div class="stat-num">${unavailableCount}</div><div class="stat-label">Unavailable</div></div>
+    `;
+  }
+
+  function renderMemberTable() {
+    const sorted = [...members].sort((a,b) => a.points - b.points);
+    document.getElementById('memberTableBody').innerHTML = sorted.map(m => `
+      <tr><td>${m.rank}</td><td>${m.name}</td><td style="text-align:right" class="pts">${m.points}</td></tr>
+    `).join('') || '<tr><td colspan="3" class="empty-state">No members found</td></tr>';
+  }
+
+  function renderPreferences() {
+    if (preferences.length === 0) {
+      document.getElementById('prefsBody').innerHTML = '<div class="empty-state">No preferences submitted yet</div>';
+      return;
+    }
+    const sorted = [...preferences].sort((a,b) => new Date(a.date) - new Date(b.date));
+    document.getElementById('prefsBody').innerHTML = sorted.map(p => {
+      const badgeClass = (p.reason || '').toLowerCase();
+      return `
+        <div class="pref-entry ${p.status === 'Unavailable' ? 'unavailable' : ''}">
+          <div>
+            <div class="pref-name">${p.name}</div>
+            <div class="pref-meta">${formatDate(p.date)} — ${p.status}</div>
+          </div>
+          ${p.reason ? `<span class="badge ${badgeClass}">${p.reason}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatDate(d) {
+    const date = new Date(d);
+    if (isNaN(date)) return d;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /* ---- Roster generation ---- */
+  function dayType(date) {
+    const day = date.getDay();
+    if (day === 0 || day === 6) return 'Weekend';
+    return 'Weekday';
+  }
+  function pointsForDayType(type) {
+    if (type === 'Weekend') return 2;
+    if (type === 'PH') return 3;
+    return 1;
+  }
+
+  document.getElementById('generateBtn').addEventListener('click', () => {
+    const start = document.getElementById('rangeStart').value;
+    const end = document.getElementById('rangeEnd').value;
+    const slots = parseInt(document.getElementById('slotsPerDay').value) || 1;
+
+    if (!start || !end) { alert('Pick a start and end date.'); return; }
+    if (members.length === 0) { alert('No members loaded yet — refresh and try again.'); return; }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (startDate > endDate) { alert('Start date must be before end date.'); return; }
+
+    // Build date list
+    const dates = [];
+    let cur = new Date(startDate);
+    while (cur <= endDate) {
+      dates.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    // Working pool: every member in the system, starting from their current points.
+    // duties = how many times assigned in THIS roster generation, used as a tiebreaker
+    // so the same person isn't repeatedly picked even if points momentarily tie.
+    const pointsPool = members.map(m => ({ ...m, duties: 0 }));
+
+    draftRoster = [];
+
+    // Pre-index preferences for fast lookup
+    const preferredByDate = {};
+    const unavailableByDate = {};
+    preferences.forEach(p => {
+      if (p.status === 'Preferred') {
+        (preferredByDate[p.date] = preferredByDate[p.date] || new Set()).add(p.name);
+      } else if (p.status === 'Unavailable') {
+        (unavailableByDate[p.date] = unavailableByDate[p.date] || new Set()).add(p.name);
+      }
+    });
+
+    dates.forEach(d => {
+      const isoDate = d.toISOString().split('T')[0];
+      const dType = dayType(d);
+      const pts = pointsForDayType(dType);
+
+      const preferredNames = preferredByDate[isoDate] || new Set();
+      const unavailableNames = unavailableByDate[isoDate] || new Set();
+
+      for (let s = 0; s < slots; s++) {
+        const assignedToday = draftRoster.filter(r => r.date === isoDate).map(r => r.name);
+
+        // Candidate pool = entire member list, minus unavailable + already-assigned-today.
+        // Members who never submitted preferences are still eligible — they're just
+        // ranked by points like everyone else.
+        let candidates = pointsPool.filter(m => !unavailableNames.has(m.name) && !assignedToday.includes(m.name));
+
+        if (candidates.length === 0) {
+          draftRoster.push({ date: isoDate, name: '— Unfilled —', dayType: dType, pointsAwarded: 0 });
+          continue;
+        }
+
+        // Step 1: among candidates, prefer those who marked this date as Preferred
+        let pool = candidates.filter(m => preferredNames.has(m.name));
+        if (pool.length === 0) pool = candidates;
+
+        // Step 2: lowest points first, duties-this-roster as tiebreaker, so the
+        // whole month spreads fairly rather than dumping it all on one low-point person
+        pool.sort((a, b) => (a.points - b.points) || (a.duties - b.duties));
+        const chosen = pool[0];
+
+        draftRoster.push({ date: isoDate, name: chosen.name, dayType: dType, pointsAwarded: pts });
+
+        // Update running totals so the next slot/day balances fairly
+        const idx = pointsPool.findIndex(m => m.name === chosen.name);
+        pointsPool[idx].points += pts;
+        pointsPool[idx].duties += 1;
+      }
+    });
+
+    renderRoster();
+  });
+
+  document.getElementById('addRowBtn').addEventListener('click', () => {
+    draftRoster.push({ date: '', name: members[0] ? members[0].name : '', dayType: 'Weekday', pointsAwarded: 1 });
+    renderRoster();
+  });
+
+  function renderRoster() {
+    document.getElementById('rosterPanel').style.display = 'block';
+    const memberOptions = members.map(m => `<option value="${m.name}">${m.rank} ${m.name}</option>`).join('');
+
+    document.getElementById('rosterList').innerHTML = draftRoster.map((r, i) => `
+      <div class="roster-row ${r.dayType === 'Weekend' ? 'weekend' : ''} ${r.dayType === 'PH' ? 'ph' : ''}">
+        <div class="roster-date">${r.date ? formatDate(r.date) : '<input type="date" data-idx="' + i + '" class="date-edit" style="width:100%;padding:5px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:2px;">'}</div>
+        <div class="roster-name">
+          <select data-idx="${i}" class="name-edit">
+            <option value="— Unfilled —">— Unfilled —</option>
+            ${memberOptions}
+          </select>
+        </div>
+        <div class="roster-daytype">
+          <select data-idx="${i}" class="daytype-edit" style="width:100%;padding:6px;background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);border-radius:2px;font-size:11px;font-family:var(--mono);">
+            <option value="Weekday">Weekday</option>
+            <option value="Weekend">Weekend</option>
+            <option value="PH">PH</option>
+          </select>
+        </div>
+        <div class="roster-pts">${r.pointsAwarded}</div>
+      </div>
+    `).join('');
+
+    // Set current values + bind change listeners
+    draftRoster.forEach((r, i) => {
+      const nameSel = document.querySelector(`.name-edit[data-idx="${i}"]`);
+      const typeSel = document.querySelector(`.daytype-edit[data-idx="${i}"]`);
+      if (nameSel) nameSel.value = r.name;
+      if (typeSel) typeSel.value = r.dayType;
+
+      if (nameSel) nameSel.addEventListener('change', () => { draftRoster[i].name = nameSel.value; });
+      if (typeSel) typeSel.addEventListener('change', () => {
+        draftRoster[i].dayType = typeSel.value;
+        draftRoster[i].pointsAwarded = pointsForDayType(typeSel.value);
+        renderRoster();
+      });
+    });
+
+    document.querySelectorAll('.date-edit').forEach(el => {
+      el.addEventListener('change', () => {
+        const i = Number(el.dataset.idx);
+        draftRoster[i].date = el.value;
+        const d = new Date(el.value);
+        draftRoster[i].dayType = dayType(d);
+        draftRoster[i].pointsAwarded = pointsForDayType(draftRoster[i].dayType);
+        renderRoster();
+      });
+    });
+  }
+
+  document.getElementById('saveRosterBtn').addEventListener('click', () => {
+    const incomplete = draftRoster.some(r => !r.date || !r.name);
+    if (incomplete) { alert('Every row needs a date and assigned member.'); return; }
+
+    const btn = document.getElementById('saveRosterBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveRoster', entries: draftRoster })
+    })
+      .then(r => r.json())
+      .then(res => {
+        const msg = document.getElementById('rosterStatus');
+        if (res.success) {
+          msg.className = 'status-msg show success';
+          msg.textContent = `Roster saved. ${res.count} duties assigned, points updated.`;
+          loadMembers();
+        } else {
+          msg.className = 'status-msg show error';
+          msg.textContent = 'Failed to save. Try again.';
+        }
+      })
+      .catch(() => {
+        const msg = document.getElementById('rosterStatus');
+        msg.className = 'status-msg show error';
+        msg.textContent = 'Network error. Check connection.';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Save & finalise roster';
+      });
+  });
+</script>
+
+</body>
+</html>
